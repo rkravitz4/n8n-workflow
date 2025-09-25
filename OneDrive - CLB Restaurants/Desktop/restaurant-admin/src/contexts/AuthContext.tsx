@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Auth loading timeout reached, forcing loading to false');
         setLoading(false);
       }
-    }, 5000); // 5 second fallback timeout
+    }, 10000); // 10 second fallback timeout
 
     // Get initial session
     const getInitialSession = async () => {
@@ -41,34 +41,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!isMounted) {
-          console.log('Component unmounted, returning');
-          return;
-        }
+        if (!isMounted) return;
         
         if (error) {
           console.error('Error getting session:', error);
           setUser(null);
           setUserRole(null);
           setLoading(false);
-          console.log('Set loading to false due to session error');
           return;
         }
         
         if (session?.user) {
           console.log('Session found for user:', session.user.email);
           setUser(session.user);
-          // Keep loading true until we fetch the user role
-          // Fetch user role and then set loading to false
+          // Fetch user role and set loading to false when done
           try {
             await fetchUserRole(session.user.id);
-            setLoading(false);
+            if (isMounted) {
+              setLoading(false);
+            }
           } catch (error) {
             console.error('Error fetching user role:', error);
-            setLoading(false);
+            if (isMounted) {
+              setLoading(false);
+            }
           }
         } else {
-          console.log('No session found, setting loading to false');
+          console.log('No session found');
           setUser(null);
           setUserRole(null);
           setLoading(false);
@@ -79,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setUserRole(null);
           setLoading(false);
-          console.log('Set loading to false due to exception in getInitialSession');
         }
       }
     };
@@ -93,46 +91,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!isMounted) return;
         
-        try {
-          if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setUserRole(null);
-            setLoading(false);
-          } else if (event === 'TOKEN_REFRESHED') {
-            // Handle token refresh - don't sign out on refresh
-            if (session?.user) {
-              setUser(session.user);
-              // Keep loading true until we fetch the user role
-              try {
-                await fetchUserRole(session.user.id);
-                setLoading(false);
-              } catch (error) {
-                console.error('Error fetching user role on token refresh:', error);
-                setLoading(false);
-              }
-            } else {
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserRole(null);
+          setLoading(false);
+        } else if (session?.user) {
+          setUser(session.user);
+          // Fetch user role for any auth change with a user
+          try {
+            await fetchUserRole(session.user.id);
+            if (isMounted) {
               setLoading(false);
             }
-          } else if (session?.user) {
-            setUser(session.user);
-            // Keep loading true until we fetch the user role
-            try {
-              await fetchUserRole(session.user.id);
-              setLoading(false);
-            } catch (error) {
-              console.error('Error fetching user role on auth change:', error);
+          } catch (error) {
+            console.error('Error fetching user role on auth change:', error);
+            if (isMounted) {
               setLoading(false);
             }
-          } else if (event === 'SIGNED_IN') {
-            // Handle sign in event
-            setLoading(false);
-          } else {
-            // For any other event, ensure loading is set to false
-            setLoading(false);
           }
-        } catch (error) {
-          console.error('Error handling auth state change:', error);
-          // Don't automatically sign out on errors - let the user stay logged in
+        } else {
+          // No user in session
+          setUser(null);
+          setUserRole(null);
           setLoading(false);
         }
       }
@@ -201,53 +181,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        // Set user immediately to avoid loading state issues
         setUser(data.user);
-        
-        // Check if user has admin role with timeout
-        try {
-          const profilePromise = supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Profile check timeout')), 3000)
-          );
-
-          const { data: profileData, error: profileError } = await Promise.race([
-            profilePromise,
-            timeoutPromise
-          ]) as any;
-
-          if (profileError) {
-            console.warn('Profile check failed, assuming admin role:', profileError);
-            // For known admin users, assume admin role
-            setUserRole('admin');
-            setLoading(false);
-            router.replace('/dashboard');
-            return { success: true };
-          } else if (profileData?.role === 'admin' || profileData?.role === 'system_admin') {
-            setUserRole(profileData.role);
-            setLoading(false);
-            router.replace('/dashboard');
-            return { success: true };
-          } else {
-            await supabase.auth.signOut();
-            setLoading(false);
-            return { 
-              success: false, 
-              error: 'Access denied. Admin privileges required.' 
-            };
-          }
-        } catch (profileError) {
-          console.warn('Profile check failed, assuming admin role:', profileError);
-          setUserRole('admin');
-          setLoading(false);
-          router.replace('/dashboard');
-          return { success: true };
-        }
+        // Let the auth state change handler fetch the role
+        router.replace('/dashboard');
+        return { success: true };
       }
 
       setLoading(false);

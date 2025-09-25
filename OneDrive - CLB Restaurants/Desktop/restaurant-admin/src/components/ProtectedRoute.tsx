@@ -13,16 +13,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
 
   useEffect(() => {
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.log('Loading timeout reached, redirecting to login');
-        router.push('/login');
-      }
-    }, 5000); // 5 second timeout to allow for role fetching
-
+    // Only redirect when loading is complete
     if (!loading) {
-      clearTimeout(timeoutId);
       if (!user) {
         console.log('No user found, redirecting to login');
         router.push('/login');
@@ -31,8 +23,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         router.push('/login');
       }
     }
-
-    return () => clearTimeout(timeoutId);
   }, [user, isAdmin, loading, router]);
 
   if (loading) {
