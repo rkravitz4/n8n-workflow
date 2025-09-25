@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --tucci-maroon: #810000;
+  --tucci-gold: #ab974f;
+  --tucci-white: #ffffff;
+  --tucci-black: #000000;
+  --tucci-maroon-dark: #6b0000;
+  --tucci-gold-light: #c4a85a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-playfair);
+  --font-inter: var(--font-inter);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Tucci Brand Typography */
+.tucci-serif {
+  font-family: var(--font-playfair), serif;
+  font-weight: 600;
+}
+
+.tucci-sans {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 500;
+}
+
+/* Elegant button styles */
+.tucci-button-primary {
+  background-color: var(--tucci-maroon);
+  color: var(--tucci-white);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.tucci-button-primary:hover {
+  background-color: var(--tucci-maroon-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(129, 0, 0, 0.3);
+}
+
+.tucci-button-secondary {
+  background-color: transparent;
+  color: var(--tucci-maroon);
+  border: 2px solid var(--tucci-maroon);
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.tucci-button-secondary:hover {
+  background-color: var(--tucci-maroon);
+  color: var(--tucci-white);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(129, 0, 0, 0.3);
+}
+
+/* Elegant card styles */
+.tucci-card {
+  background: var(--tucci-white);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(171, 151, 79, 0.1);
+  transition: all 0.3s ease;
+}
+
+.tucci-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Gold accent line */
+.tucci-accent-line {
+  height: 2px;
+  background: linear-gradient(90deg, var(--tucci-gold), var(--tucci-gold-light));
+  border-radius: 1px;
+}
+
+/* Professional icon styles */
+.tucci-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--tucci-maroon);
+  transition: all 0.3s ease;
+}
+
+.tucci-icon:hover {
+  color: var(--tucci-gold);
+  transform: scale(1.1);
+}
