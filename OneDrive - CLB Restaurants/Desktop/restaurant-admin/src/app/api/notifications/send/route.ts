@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
       .from('notifications')
       .update({ 
         tokens_sent: tokensSent,
-        expo_response,
-        deep_link: pushResult
+        expo_response: pushResult
       })
       .eq('id', notification.id);
 
