@@ -1,7 +1,7 @@
 interface SendNotificationOptions {
   title: string;
   message: string;
-  targetAudience: 'all' | 'admins' | 'users';
+  targetAudience: 'all' | 'admins' | 'users' | 'system_admin';
   deep_link?: string | null;
   data?: any;
 }
@@ -59,6 +59,8 @@ export class PushNotificationService {
         query = query.in('role', ['admin', 'system_admin']);
       } else if (options.targetAudience === 'users') {
         query = query.eq('role', 'user');
+      } else if (options.targetAudience === 'system_admin') {
+        query = query.eq('role', 'system_admin');
       }
       // For 'all', we don't filter by role
 

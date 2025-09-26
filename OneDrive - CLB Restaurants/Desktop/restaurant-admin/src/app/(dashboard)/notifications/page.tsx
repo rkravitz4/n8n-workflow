@@ -252,6 +252,7 @@ export default function NotificationsPage() {
       case 'all': return 'bg-blue-100 text-blue-800';
       case 'admins': return 'bg-red-100 text-red-800';
       case 'users': return 'bg-green-100 text-green-800';
+      case 'system_admin': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -336,12 +337,13 @@ export default function NotificationsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
                     <select
                       value={newNotification.target_audience}
-                      onChange={(e) => setNewNotification({...newNotification, target_audience: e.target.value as 'all' | 'admins' | 'users'})}
+                      onChange={(e) => setNewNotification({...newNotification, target_audience: e.target.value as 'all' | 'admins' | 'users' | 'system_admin'})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 bg-white"
                     >
                       <option value="all">All Users</option>
                       <option value="users">Regular Users Only</option>
                       <option value="admins">Admins Only</option>
+                      <option value="system_admin">System Admins Only</option>
                     </select>
                   </div>
                   <div>
@@ -444,7 +446,8 @@ export default function NotificationsPage() {
                           <h3 className="text-xl font-semibold text-gray-900">{notification.title}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAudienceColor(notification.target_audience)}`}>
                             {notification.target_audience === 'all' ? 'All Users' : 
-                             notification.target_audience === 'admins' ? 'Admins Only' : 'Users Only'}
+                             notification.target_audience === 'admins' ? 'Admins Only' : 
+                             notification.target_audience === 'system_admin' ? 'System Admins Only' : 'Users Only'}
                           </span>
                         </div>
                         <p className="text-gray-600 mb-4">{notification.message}</p>
@@ -552,7 +555,8 @@ export default function NotificationsPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getAudienceColor(statsModal.notification.target_audience)}`}>
                         {statsModal.notification.target_audience === 'all' ? 'All Users' : 
-                         statsModal.notification.target_audience === 'admins' ? 'Admins Only' : 'Users Only'}
+                         statsModal.notification.target_audience === 'admins' ? 'Admins Only' : 
+                         statsModal.notification.target_audience === 'system_admin' ? 'System Admins Only' : 'Users Only'}
                       </span>
                     </div>
                   </div>
