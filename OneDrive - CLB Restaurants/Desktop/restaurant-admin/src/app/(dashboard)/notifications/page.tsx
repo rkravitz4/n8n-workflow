@@ -35,7 +35,7 @@ export default function NotificationsPage() {
   const [newNotification, setNewNotification] = useState({
     title: '',
     message: '',
-    target_audience: 'all' as 'all' | 'admins' | 'users',
+    target_audience: 'all' as 'all' | 'admins' | 'users' | 'system_admin',
     deep_link: '',
     scheduledTime: ''
   });
