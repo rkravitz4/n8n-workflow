@@ -12,7 +12,7 @@ interface Notification {
   id: string;
   title: string;
   message: string;
-  target_audience: 'all' | 'admins' | 'users';
+  target_audience: 'all' | 'admins' | 'users' | 'system_admin';
   sent_at: string;
   sent_by: string;
   tokens_sent?: number;
