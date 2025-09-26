@@ -355,29 +355,41 @@ export default function NotificationsPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 bg-white"
                     >
                       <option value="">No page (notification only)</option>
-                      <optgroup label="Menus">
+                      <optgroup label="Main Navigation">
+                        <option value="/">Home</option>
+                        <option value="/menus">Menus</option>
+                        <option value="/events">Events</option>
+                        <option value="/reservations">Reservations</option>
+                        <option value="/more">More</option>
+                      </optgroup>
+                      <optgroup label="Menu Pages">
                         <option value="/lunch-menu">Lunch Menu</option>
                         <option value="/dinner-menu">Dinner Menu</option>
-                        <option value="/happy-hour-menu">Happy Hour Menu</option>
+                        <option value="/happy-hour">Happy Hour</option>
                         <option value="/bar-bites-menu">Bar Bites Menu</option>
                         <option value="/brunch-menu">Brunch Menu</option>
+                        <option value="/weekend-brunch">Weekend Brunch</option>
+                        <option value="/dessert-menu">Dessert Menu</option>
+                        <option value="/kids-menu">Kids Menu</option>
                         <option value="/wine-list">Wine List</option>
-                        <option value="/cocktail-menu">Cocktail Menu</option>
+                        <option value="/cocktail-list">Cocktail List</option>
+                        <option value="/retail-wine">Retail Wine</option>
                       </optgroup>
-                      <optgroup label="Special Events">
+                      <optgroup label="Special Services">
                         <option value="/private-dining">Private Dining</option>
-                        <option value="/catering">Catering</option>
-                        <option value="/wine-tastings">Wine Tastings</option>
-                        <option value="/live-music">Live Music Schedule</option>
+                        <option value="/private-dining-request">Private Dining Request</option>
                       </optgroup>
                       <optgroup label="Information">
                         <option value="/about">About Us</option>
-                        <option value="/location">Location & Hours</option>
-                        <option value="/contact">Contact Us</option>
-                        <option value="/gift-cards">Gift Cards</option>
+                        <option value="/hours">Hours</option>
+                        <option value="/directions">Directions</option>
+                        <option value="/contact-information">Contact Information</option>
+                        <option value="/feedback">Feedback</option>
                       </optgroup>
-                      <optgroup label="Reservations">
-                        <option value="/reservations">Make a Reservation</option>
+                      <optgroup label="User Features">
+                        <option value="/profile">Profile</option>
+                        <option value="/my-coupons">My Coupons</option>
+                        <option value="/app-permissions">App Permissions</option>
                       </optgroup>
                     </select>
                   </div>
