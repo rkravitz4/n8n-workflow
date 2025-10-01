@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Auth loading timeout reached, forcing loading to false');
         setLoading(false);
       }
-    }, 10000); // 10 second fallback timeout
+    }, 3000); // 3 second fallback timeout
 
     // Get initial session
     const getInitialSession = async () => {
@@ -105,9 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (error) {
             console.error('Error fetching user role on auth change:', error);
-            if (isMounted) {
-              setLoading(false);
-            }
+            // Set a fallback timeout to ensure loading doesn't hang forever
+            setTimeout(() => {
+              if (isMounted) {
+                console.log('Fallback: Setting loading to false after role fetch error');
+                setLoading(false);
+              }
+            }, 2000);
           }
         } else {
           // No user in session
@@ -128,11 +132,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserRole = async (userId: string) => {
     try {
       console.log('Fetching user role for:', userId);
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Role fetch timeout')), 2000);
+      });
+      
+      const fetchPromise = supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Error fetching user role:', error);
