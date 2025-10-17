@@ -3,6 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
+    if (!supabaseAdmin) {
+      return NextResponse.json({ 
+        error: 'Supabase admin client not available'
+      }, { status: 500 });
+    }
+
     // Test basic Supabase connection
     const { data, error } = await supabaseAdmin
       .from('profiles')

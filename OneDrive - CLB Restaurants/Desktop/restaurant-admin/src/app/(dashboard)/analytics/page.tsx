@@ -384,11 +384,11 @@ export default function AnalyticsPage() {
                   className="tucci-card p-4 cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setModalChart({
                     type: 'weeklyGrowth',
-                    title: 'Recent User Activity',
+                    title: 'Weekly User Growth',
                     data: chartData.userGrowth.weekly
                   })}
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 tucci-serif">Recent User Activity</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 tucci-serif">Weekly User Growth</h3>
                   {chartData.userGrowth.weekly.length > 0 ? (
                     <div>
                       <ResponsiveContainer width="100%" height={200}>

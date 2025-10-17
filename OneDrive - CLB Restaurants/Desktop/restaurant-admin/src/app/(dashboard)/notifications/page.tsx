@@ -7,6 +7,7 @@ import { NotificationsIcon } from '@/components/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useToast } from '@/contexts/ToastContext';
+import { useMenuOptions } from '@/hooks/useMenuOptions';
 
 interface Notification {
   id: string;
@@ -28,6 +29,7 @@ interface Notification {
 export default function NotificationsPage() {
   const { user, signOut } = useAuth();
   const { showToast } = useToast();
+  const { menuOptions, loading: menuOptionsLoading } = useMenuOptions();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -112,9 +114,9 @@ export default function NotificationsPage() {
           if (data.pushResult && data.pushResult.success) {
             showToast(`Notification sent successfully to ${data.pushResult.tokensSent || 0} devices!`, 'success');
           } else if (data.warning) {
-            showToast(`Notification saved but push delivery failed: ${data.message}`, 'warning');
+            showToast(`Notification saved but push delivery failed: ${data.message}`, 'error');
           } else {
-            showToast('Notification saved but failed to send to devices. Check your push token configuration.', 'warning');
+            showToast('Notification saved but failed to send to devices. Check your push token configuration.', 'error');
           }
         }
         
@@ -175,9 +177,9 @@ export default function NotificationsPage() {
         if (data.pushResult && data.pushResult.success) {
           showToast(`Notification "${notification.title}" resent successfully to ${data.pushResult.tokensSent || 0} devices!`, 'success');
         } else if (data.warning) {
-          showToast(`Notification "${notification.title}" saved but push delivery failed: ${data.message}`, 'warning');
+          showToast(`Notification "${notification.title}" saved but push delivery failed: ${data.message}`, 'error');
         } else {
-          showToast(`Notification "${notification.title}" saved but failed to send to devices. Check your push token configuration.`, 'warning');
+          showToast(`Notification "${notification.title}" saved but failed to send to devices. Check your push token configuration.`, 'error');
         }
         
         // Refresh notifications list
@@ -353,44 +355,22 @@ export default function NotificationsPage() {
                       value={newNotification.deep_link}
                       onChange={(e) => setNewNotification({...newNotification, deep_link: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 bg-white"
+                      disabled={menuOptionsLoading}
                     >
                       <option value="">No page (notification only)</option>
-                      <optgroup label="Main Navigation">
-                        <option value="/">Home</option>
-                        <option value="/menus">Menus</option>
-                        <option value="/events">Events</option>
-                        <option value="/reservations">Reservations</option>
-                        <option value="/more">More</option>
-                      </optgroup>
-                      <optgroup label="Menu Pages">
-                        <option value="/lunch-menu">Lunch Menu</option>
-                        <option value="/dinner-menu">Dinner Menu</option>
-                        <option value="/happy-hour">Happy Hour</option>
-                        <option value="/bar-bites-menu">Bar Bites Menu</option>
-                        <option value="/brunch-menu">Brunch Menu</option>
-                        <option value="/weekend-brunch">Weekend Brunch</option>
-                        <option value="/dessert-menu">Dessert Menu</option>
-                        <option value="/kids-menu">Kids Menu</option>
-                        <option value="/wine-list">Wine List</option>
-                        <option value="/cocktail-list">Cocktail List</option>
-                        <option value="/retail-wine">Retail Wine</option>
-                      </optgroup>
-                      <optgroup label="Special Services">
-                        <option value="/private-dining">Private Dining</option>
-                        <option value="/private-dining-request">Private Dining Request</option>
-                      </optgroup>
-                      <optgroup label="Information">
-                        <option value="/about">About Us</option>
-                        <option value="/hours">Hours</option>
-                        <option value="/directions">Directions</option>
-                        <option value="/contact-information">Contact Information</option>
-                        <option value="/feedback">Feedback</option>
-                      </optgroup>
-                      <optgroup label="User Features">
-                        <option value="/profile">Profile</option>
-                        <option value="/my-coupons">My Coupons</option>
-                        <option value="/app-permissions">App Permissions</option>
-                      </optgroup>
+                      {menuOptionsLoading ? (
+                        <option disabled>Loading menu options...</option>
+                      ) : (
+                        Object.entries(menuOptions).map(([category, options]) => (
+                          <optgroup key={category} label={category}>
+                            {options.map((option) => (
+                              <option key={option.id} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))
+                      )}
                     </select>
                   </div>
                   <div>

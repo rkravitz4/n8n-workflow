@@ -15,6 +15,9 @@ export default function DashboardNavbar({ currentPage, showUserInfo = false }: D
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', key: 'dashboard' },
     { href: '/events', label: 'Events', key: 'events' },
+    { href: '/menu-options', label: 'Menu', key: 'menu-options' },
+    { href: '/wine-store-control', label: 'Wine', key: 'wine-store-control' },
+    { href: '/loyalty', label: 'Loyalty', key: 'loyalty' },
     { href: '/analytics', label: 'Analytics', key: 'analytics' },
     { href: '/notifications', label: 'Notifications', key: 'notifications' },
     { href: '/users', label: 'Users', key: 'users' },
@@ -32,12 +35,12 @@ export default function DashboardNavbar({ currentPage, showUserInfo = false }: D
           </div>
           
           {/* Navigation Items - positioned closer to logo */}
-          <div className="flex items-center space-x-3 ml-6">
+          <div className="flex items-center space-x-2 ml-6">
             {navItems.map((item) => (
               <Link
                 key={item.key}
                 href={item.href}
-                className={`px-3 py-2 transition-colors cursor-pointer ${
+                className={`px-2.5 py-2 text-sm transition-colors cursor-pointer whitespace-nowrap ${
                   currentPage === item.key
                     ? 'text-red-600 font-medium'
                     : 'text-gray-600 hover:text-gray-900'

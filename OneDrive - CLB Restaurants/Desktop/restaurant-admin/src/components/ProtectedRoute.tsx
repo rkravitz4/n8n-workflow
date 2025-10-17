@@ -13,15 +13,27 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
 
   useEffect(() => {
+    console.log('🔍 [PROTECTED] ProtectedRoute effect triggered:', { 
+      loading, 
+      hasUser: !!user, 
+      userEmail: user?.email,
+      isAdmin, 
+      userRole: user?.user_metadata?.role 
+    });
+    
     // Only redirect when loading is complete
     if (!loading) {
       if (!user) {
-        console.log('No user found, redirecting to login');
+        console.log('❌ [PROTECTED] No user found, redirecting to login');
         router.push('/login');
       } else if (!isAdmin) {
-        console.log('User is not admin, redirecting to login');
+        console.log('❌ [PROTECTED] User is not admin, redirecting to login');
         router.push('/login');
+      } else {
+        console.log('✅ [PROTECTED] User is authenticated and authorized');
       }
+    } else {
+      console.log('🔍 [PROTECTED] Still loading, waiting...');
     }
   }, [user, isAdmin, loading, router]);
 

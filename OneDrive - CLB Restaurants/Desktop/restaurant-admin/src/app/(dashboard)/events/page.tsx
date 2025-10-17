@@ -6,6 +6,7 @@ import SimpleImageCropper from '@/components/SimpleImageCropper';
 import TextStyleControls from '@/components/TextStyleControls';
 import { getCroppedImg } from '@/lib/imageUtils';
 import { useToast } from '@/contexts/ToastContext';
+import { useMenuOptions } from '@/hooks/useMenuOptions';
 
 interface Event {
   id: string;
@@ -15,6 +16,7 @@ interface Event {
   time: string;
   location: string;
   price: string;
+  deposit_price: string;
   hero_image: string | null;
   original_hero_image?: string | null;
   link_type: 'opentable' | 'app_page';
@@ -41,6 +43,8 @@ interface Event {
   description_bold: boolean;
   price_color: string;
   price_bold: boolean;
+  deposit_price_color: string;
+  deposit_price_bold: boolean;
   button_text_color: string;
   button_text_bold: boolean;
   seating_text_color: string;
@@ -49,6 +53,7 @@ interface Event {
 
 export default function EventsPage() {
   const { showToast } = useToast();
+  const { menuOptions, loading: menuOptionsLoading } = useMenuOptions();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -72,6 +77,7 @@ export default function EventsPage() {
     time: '',
     location: '',
     price: '',
+    deposit_price: '',
     hero_image: '',
     opentable_url: '', // New field for optional OpenTable URL
     app_page: '', // New field for app page selection
@@ -91,6 +97,8 @@ export default function EventsPage() {
     description_bold: false,
     price_color: '#810000',
     price_bold: false,
+    deposit_price_color: '#ab974f',
+    deposit_price_bold: false,
     button_text_color: '#ffffff',
     button_text_bold: false,
     seating_text_color: '#810000',
@@ -310,6 +318,7 @@ export default function EventsPage() {
           time: '',
           location: '',
           price: '',
+          deposit_price: '',
           hero_image: '',
           opentable_url: '',
           app_page: '',
@@ -329,6 +338,8 @@ export default function EventsPage() {
           description_bold: false,
           price_color: '#810000',
           price_bold: false,
+          deposit_price_color: '#ab974f',
+          deposit_price_bold: false,
           button_text_color: '#ffffff',
           button_text_bold: false,
           seating_text_color: '#810000',
@@ -791,12 +802,33 @@ export default function EventsPage() {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Price (Optional)</label>
+                    <input
+                      type="text"
+                      value={newEvent.deposit_price}
+                      onChange={(e) => setNewEvent({ ...newEvent, deposit_price: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 placeholder-gray-500"
+                      placeholder="Enter deposit amount (e.g., $25)"
+                    />
+                    <div className="mt-2">
+                      <TextStyleControls
+                        label="Deposit Price"
+                        color={newEvent.deposit_price_color}
+                        bold={newEvent.deposit_price_bold}
+                        onColorChange={(color) => setNewEvent({ ...newEvent, deposit_price_color: color })}
+                        onBoldChange={(bold) => setNewEvent({ ...newEvent, deposit_price_bold: bold })}
+                        recommendedColor="#ab974f"
+                        recommendedBold={false}
+                      />
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Hero Image Upload</label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageSelect}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900"
                     />
                     {imagePreview && (
                       <div className="mt-2">
@@ -819,44 +851,22 @@ export default function EventsPage() {
                   value={newEvent.app_page || ''}
                   onChange={(e) => setNewEvent({ ...newEvent, app_page: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900"
+                  disabled={menuOptionsLoading}
                 >
                   <option value="">Select a page...</option>
-                  <optgroup label="Main Navigation">
-                    <option value="/">Home</option>
-                    <option value="/menus">Menus</option>
-                    <option value="/events">Events</option>
-                    <option value="/reservations">Reservations</option>
-                    <option value="/more">More</option>
-                  </optgroup>
-                  <optgroup label="Menu Pages">
-                    <option value="/lunch-menu">Lunch Menu</option>
-                    <option value="/dinner-menu">Dinner Menu</option>
-                    <option value="/happy-hour">Happy Hour</option>
-                    <option value="/bar-bites-menu">Bar Bites Menu</option>
-                    <option value="/brunch-menu">Brunch Menu</option>
-                    <option value="/weekend-brunch">Weekend Brunch</option>
-                    <option value="/dessert-menu">Dessert Menu</option>
-                    <option value="/kids-menu">Kids Menu</option>
-                    <option value="/wine-list">Wine List</option>
-                    <option value="/cocktail-list">Cocktail List</option>
-                    <option value="/retail-wine">Retail Wine</option>
-                  </optgroup>
-                  <optgroup label="Special Services">
-                    <option value="/private-dining">Private Dining</option>
-                    <option value="/private-dining-request">Private Dining Request</option>
-                  </optgroup>
-                  <optgroup label="Information">
-                    <option value="/about">About Us</option>
-                    <option value="/hours">Hours</option>
-                    <option value="/directions">Directions</option>
-                    <option value="/contact-information">Contact Information</option>
-                    <option value="/feedback">Feedback</option>
-                  </optgroup>
-                  <optgroup label="User Features">
-                    <option value="/profile">Profile</option>
-                    <option value="/my-coupons">My Coupons</option>
-                    <option value="/app-permissions">App Permissions</option>
-                  </optgroup>
+                  {menuOptionsLoading ? (
+                    <option disabled>Loading menu options...</option>
+                  ) : (
+                    Object.entries(menuOptions).map(([category, options]) => (
+                      <optgroup key={category} label={category}>
+                        {options.map((option) => (
+                          <option key={option.id} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))
+                  )}
                 </select>
               <p className="text-sm text-gray-500 mt-1">
                 The page selected will automatically have a redirection button placed at the bottom of the automatically generated page.
@@ -1333,12 +1343,33 @@ export default function EventsPage() {
                         </div>
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Price (Optional)</label>
+                        <input
+                          type="text"
+                          value={editingEvent.deposit_price || ''}
+                          onChange={(e) => setEditingEvent({ ...editingEvent, deposit_price: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 placeholder-gray-500"
+                          placeholder="Enter deposit amount (e.g., $25)"
+                        />
+                        <div className="mt-2">
+                          <TextStyleControls
+                            label="Deposit Price"
+                            color={editingEvent.deposit_price_color || '#ab974f'}
+                            bold={editingEvent.deposit_price_bold || false}
+                            onColorChange={(color) => setEditingEvent({ ...editingEvent, deposit_price_color: color })}
+                            onBoldChange={(bold) => setEditingEvent({ ...editingEvent, deposit_price_bold: bold })}
+                            recommendedColor="#ab974f"
+                            recommendedBold={false}
+                          />
+                        </div>
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Hero Image Upload</label>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleEditImageSelect}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900"
                         />
                         <div className="mt-2">
                           <p className="text-sm text-gray-600 mb-2">Preview:</p>
@@ -1375,44 +1406,22 @@ export default function EventsPage() {
                       value={editingEvent.app_page || ''}
                       onChange={(e) => setEditingEvent({ ...editingEvent, app_page: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900"
+                      disabled={menuOptionsLoading}
                     >
                       <option value="">Select a page...</option>
-                      <optgroup label="Main Navigation">
-                        <option value="/">Home</option>
-                        <option value="/menus">Menus</option>
-                        <option value="/events">Events</option>
-                        <option value="/reservations">Reservations</option>
-                        <option value="/more">More</option>
-                      </optgroup>
-                      <optgroup label="Menu Pages">
-                        <option value="/lunch-menu">Lunch Menu</option>
-                        <option value="/dinner-menu">Dinner Menu</option>
-                        <option value="/happy-hour">Happy Hour</option>
-                        <option value="/bar-bites-menu">Bar Bites Menu</option>
-                        <option value="/brunch-menu">Brunch Menu</option>
-                        <option value="/weekend-brunch">Weekend Brunch</option>
-                        <option value="/dessert-menu">Dessert Menu</option>
-                        <option value="/kids-menu">Kids Menu</option>
-                        <option value="/wine-list">Wine List</option>
-                        <option value="/cocktail-list">Cocktail List</option>
-                        <option value="/retail-wine">Retail Wine</option>
-                      </optgroup>
-                      <optgroup label="Special Services">
-                        <option value="/private-dining">Private Dining</option>
-                        <option value="/private-dining-request">Private Dining Request</option>
-                      </optgroup>
-                      <optgroup label="Information">
-                        <option value="/about">About Us</option>
-                        <option value="/hours">Hours</option>
-                        <option value="/directions">Directions</option>
-                        <option value="/contact-information">Contact Information</option>
-                        <option value="/feedback">Feedback</option>
-                      </optgroup>
-                      <optgroup label="User Features">
-                        <option value="/profile">Profile</option>
-                        <option value="/my-coupons">My Coupons</option>
-                        <option value="/app-permissions">App Permissions</option>
-                      </optgroup>
+                      {menuOptionsLoading ? (
+                        <option disabled>Loading menu options...</option>
+                      ) : (
+                        Object.entries(menuOptions).map(([category, options]) => (
+                          <optgroup key={category} label={category}>
+                            {options.map((option) => (
+                              <option key={option.id} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))
+                      )}
                     </select>
               <p className="text-sm text-gray-500 mt-1">
                 The page selected will automatically have a redirection button placed at the bottom of the automatically generated page.

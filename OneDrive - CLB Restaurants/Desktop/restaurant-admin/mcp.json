@@ -11,6 +11,10 @@
         "sbp_29cfc5a3fdd01342e865c6f5ab3bf390b1a3289c",
         "--project-ref=svvgjqmrpkrqhooowlqt"
       ]
+    },
+    "wordpress-tuccis": {
+      "type": "http",
+      "url": "https://tuccisdublin.com/wp-json/wp/v2/mcp"
     }
   }
 }

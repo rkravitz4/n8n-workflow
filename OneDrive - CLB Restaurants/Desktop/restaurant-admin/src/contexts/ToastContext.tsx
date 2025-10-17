@@ -4,7 +4,7 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import Toast from '@/components/Toast';
 
 interface ToastContextType {
-  showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -12,7 +12,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<{
     message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
+    type: 'success' | 'error' | 'info';
     isVisible: boolean;
   }>({
     message: '',
@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     isVisible: false,
   });
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({
       message,
       type,
