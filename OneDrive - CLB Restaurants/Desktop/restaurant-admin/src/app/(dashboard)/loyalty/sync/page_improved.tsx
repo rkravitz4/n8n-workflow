@@ -21,51 +21,22 @@ interface SyncHistory {
 
 export default function SyncPage() {
   const [syncHistory, setSyncHistory] = useState<SyncHistory[]>([]);
-  const [cronJobs, setCronJobs] = useState<any[]>([]);
-  const [cronExecutions, setCronExecutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingCron, setLoadingCron] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [showCronDetails, setShowCronDetails] = useState(false);
   const [restaurantGuid, setRestaurantGuid] = useState('679c0b43-458c-47f7-a509-fa0c4b68e447');
   const [businessDate, setBusinessDate] = useState('');
   const [storeId, setStoreId] = useState('151691');
 
   useEffect(() => {
     fetchSyncHistory();
-    fetchCronStatus();
     
-    // Set default business date to today in MM/DD/YYYY format
+    // Set default business date to today
     const today = new Date();
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const day = today.getDate().toString().padStart(2, '0');
-    const year = today.getFullYear().toString();
-    setBusinessDate(`${month}/${day}/${year}`);
+    const dateStr = today.getFullYear().toString() + 
+                   (today.getMonth() + 1).toString().padStart(2, '0') + 
+                   today.getDate().toString().padStart(2, '0');
+    setBusinessDate(dateStr);
   }, []);
-
-  // Convert MM/DD/YYYY to YYYYMMDD for API calls
-  const formatDateForAPI = (dateStr: string) => {
-    if (dateStr.includes('/')) {
-      const [month, day, year] = dateStr.split('/');
-      return `${year}${month}${day}`;
-    }
-    return dateStr; // Already in YYYYMMDD format
-  };
-
-  // Handle date input with automatic formatting
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-    
-    // Add slashes automatically
-    if (value.length >= 2) {
-      value = value.substring(0, 2) + '/' + value.substring(2);
-    }
-    if (value.length >= 5) {
-      value = value.substring(0, 5) + '/' + value.substring(5, 9);
-    }
-    
-    setBusinessDate(value);
-  };
 
   const fetchSyncHistory = async () => {
     try {
@@ -90,51 +61,9 @@ export default function SyncPage() {
     }
   };
 
-  const fetchCronStatus = async () => {
-    try {
-      setLoadingCron(true);
-      
-      // Fetch cron job info
-      const jobResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/cron_job?select=*&jobname=eq.toast-order-sync-every-5-minutes`, {
-        method: 'POST',
-        headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Fetch recent executions (job ID 7)
-      const execResponse = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/cron_job_run_details?jobid=eq.7&order=start_time.desc&limit=10`, {
-        method: 'POST',
-        headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (jobResponse.ok) {
-        const jobData = await jobResponse.json();
-        setCronJobs(jobData || []);
-      }
-      
-      if (execResponse.ok) {
-        const execData = await execResponse.json();
-        setCronExecutions(execData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching cron status:', error);
-    } finally {
-      setLoadingCron(false);
-    }
-  };
-
   const handleManualSync = async () => {
-    const formattedDate = formatDateForAPI(businessDate);
-    
-    if (!restaurantGuid.trim() || !businessDate.trim() || formattedDate.length !== 8) {
-      alert('Please enter valid Restaurant GUID and Business Date (MM/DD/YYYY format)');
+    if (!restaurantGuid.trim() || !businessDate.trim() || businessDate.length !== 8) {
+      alert('Please enter valid Restaurant GUID and Business Date (YYYYMMDD format)');
       return;
     }
 
@@ -146,7 +75,7 @@ export default function SyncPage() {
     
     try {
       // Call the sync-toast-orders function
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/toast-sync-fixed-credentials`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/sync-toast-orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +83,7 @@ export default function SyncPage() {
         },
         body: JSON.stringify({
           restaurantGuid: restaurantGuid.trim(),
-          businessDate: parseInt(formattedDate),
+          businessDate: parseInt(businessDate),
           storeId: storeId.trim()
         })
       });
@@ -189,17 +118,12 @@ export default function SyncPage() {
     setSyncing(true);
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/toast-sync-fixed-credentials`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/scheduled-toast-sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          restaurantGuid: restaurantGuid.trim(),
-          businessDate: parseInt(formatDateForAPI(businessDate)),
-          storeId: storeId.trim()
-        })
+        }
       });
       
       const result = await response.json();
@@ -364,14 +288,14 @@ export default function SyncPage() {
                 
                 <div className="space-y-3 mb-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Business Date (MM/DD/YYYY)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Business Date (YYYYMMDD)</label>
                     <input
                       type="text"
                       value={businessDate}
-                      onChange={handleDateChange}
-                      placeholder="01/17/2025"
-                      maxLength={10}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#810000] focus:border-transparent text-gray-900 placeholder-gray-500"
+                      onChange={(e) => setBusinessDate(e.target.value)}
+                      placeholder="20250117"
+                      maxLength={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#810000] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -398,83 +322,9 @@ export default function SyncPage() {
               </div>
             </div>
 
-            {/* Cron Job Status */}
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Automatic Sync Status (Cron Job)</h3>
-                <button
-                  onClick={() => {
-                    fetchCronStatus();
-                    setShowCronDetails(!showCronDetails);
-                  }}
-                  className="text-[#810000] hover:text-[#6b0000] text-sm font-medium"
-                >
-                  {showCronDetails ? 'Hide Details' : 'Show Details'}
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center mb-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500 mr-2 animate-pulse"></div>
-                    <div className="text-xs font-medium text-green-700">Cron Status</div>
-                  </div>
-                  <div className="text-lg font-bold text-green-600">ACTIVE</div>
-                  <div className="text-xs text-green-700 mt-1">Job ID: 7</div>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-xs text-gray-500 mb-1">Schedule</div>
-                  <div className="font-mono text-sm text-gray-900">*/5 11-23 * * *</div>
-                  <div className="text-xs text-gray-500 mt-1">Every 5 min, 11am-11pm</div>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-xs text-gray-500 mb-1">Last Execution</div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {syncHistory.length > 0 
-                      ? new Date(syncHistory[0].started_at).toLocaleTimeString()
-                      : 'N/A'}
-                  </div>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-xs text-gray-500 mb-1">Next Sync</div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {(() => {
-                      const now = new Date();
-                      const hour = now.getHours();
-                      if (hour >= 11 && hour < 23) {
-                        const nextMinute = Math.ceil(now.getMinutes() / 5) * 5;
-                        return `${now.getHours()}:${nextMinute.toString().padStart(2, '0')}`;
-                      } else if (hour < 11) {
-                        return 'Today at 11:00 AM';
-                      } else {
-                        return 'Tomorrow at 11:00 AM';
-                      }
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-              {showCronDetails && (
-                <div className="pt-4 border-t border-gray-200">
-                  <h4 className="font-medium text-gray-900 mb-3">Recent Cron Executions</h4>
-                  {loadingCron ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#810000] mx-auto"></div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-600">
-                      <p className="mb-2">✅ Cron job is configured and running</p>
-                      <p className="mb-2">📊 Check sync history below for execution details</p>
-                      <p>⏰ Cron executes every 5 minutes during business hours (11am-11pm)</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Configuration Info */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Toast POS Configuration</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">System Configuration</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-xs text-gray-500 mb-1">Restaurant GUID</div>
@@ -485,9 +335,9 @@ export default function SyncPage() {
                   <div className="font-mono text-xs text-gray-900">{storeId}</div>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-xs text-gray-500 mb-1">Sync Version</div>
-                  <div className="font-mono text-xs text-gray-900">v3 (Simplified)</div>
-                  <div className="text-xs text-gray-500 mt-1">Smart reward matching</div>
+                  <div className="text-xs text-gray-500 mb-1">Cron Schedule</div>
+                  <div className="font-mono text-xs text-gray-900">*/5 11-23 * * *</div>
+                  <div className="text-xs text-gray-500 mt-1">Every 5 min, 11am-11pm</div>
                 </div>
               </div>
             </div>
@@ -590,4 +440,5 @@ export default function SyncPage() {
     </ProtectedRoute>
   );
 }
+
 

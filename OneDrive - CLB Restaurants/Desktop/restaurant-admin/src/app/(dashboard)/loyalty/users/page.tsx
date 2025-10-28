@@ -16,6 +16,9 @@ interface UserLoyaltyData {
   total_rewards_redeemed: number;
   loyalty_tier: string;
   loyalty_enrolled_at: string;
+  loyalty_code: string;
+  first_name: string;
+  last_name: string;
 }
 
 interface TransactionHistory {
@@ -27,17 +30,46 @@ interface TransactionHistory {
   created_at: string;
 }
 
+interface FavoriteDish {
+  id: string;
+  dish_name: string;
+  order_count: number;
+  total_spent_cents: number;
+  last_ordered_at: string;
+}
+
 export default function LoyaltyUsersPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState<'name' | 'email' | 'phone'>('email');
+  const [searchType, setSearchType] = useState<'name' | 'email' | 'loyalty_code'>('email');
   const [users, setUsers] = useState<UserLoyaltyData[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserLoyaltyData | null>(null);
   const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
+  const [favoriteDishes, setFavoriteDishes] = useState<FavoriteDish[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [adjustmentPoints, setAdjustmentPoints] = useState('');
   const [adjustmentNote, setAdjustmentNote] = useState('');
+
+  // Load users with loyalty codes on page load
+  useEffect(() => {
+    loadLoyaltyUsers();
+  }, []);
+
+  const loadLoyaltyUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/loyalty/users/all');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Error loading loyalty users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const searchUsers = async () => {
     if (!searchTerm.trim()) return;
@@ -65,6 +97,18 @@ export default function LoyaltyUsersPage() {
       }
     } catch (error) {
       console.error('Error loading transaction history:', error);
+    }
+  };
+
+  const loadFavoriteDishes = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/loyalty/users/${userId}/favorite-dishes`);
+      if (response.ok) {
+        const data = await response.json();
+        setFavoriteDishes(data);
+      }
+    } catch (error) {
+      console.error('Error loading favorite dishes:', error);
     }
   };
 
@@ -119,11 +163,11 @@ export default function LoyaltyUsersPage() {
                 <div className="flex-1">
                   <select
                     value={searchType}
-                    onChange={(e) => setSearchType(e.target.value as 'name' | 'email' | 'phone')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000]"
+                    onChange={(e) => setSearchType(e.target.value as 'name' | 'email' | 'loyalty_code')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900"
                   >
                     <option value="email">Email Address</option>
-                    <option value="phone">Phone Number</option>
+                    <option value="loyalty_code">Unique 4-digit Code</option>
                     <option value="name">Name</option>
                   </select>
                 </div>
@@ -132,8 +176,8 @@ export default function LoyaltyUsersPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={`Search by ${searchType}...`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000]"
+                    placeholder={`Search by ${searchType === 'loyalty_code' ? '4-digit code' : searchType}...`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 placeholder-gray-500"
                     onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
                   />
                 </div>
@@ -159,15 +203,22 @@ export default function LoyaltyUsersPage() {
                       onClick={() => {
                         setSelectedUser(userData);
                         loadTransactionHistory(userData.user_id);
+                        loadFavoriteDishes(userData.user_id);
                       }}
                     >
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-medium text-gray-900">{userData.email}</h4>
-                          {userData.phone_e164 && (
-                            <p className="text-sm text-gray-600">Phone: {userData.phone_e164}</p>
+                          {userData.first_name && userData.last_name && (
+                            <p className="text-sm text-gray-900">Name: {userData.first_name} {userData.last_name}</p>
                           )}
-                          <p className="text-sm text-gray-600">
+                          {userData.loyalty_code && (
+                            <p className="text-sm text-gray-900">Code: {userData.loyalty_code}</p>
+                          )}
+                          {userData.phone_e164 && (
+                            <p className="text-sm text-gray-900">Phone: {userData.phone_e164}</p>
+                          )}
+                          <p className="text-sm text-gray-900">
                             Last Activity: {userData.last_earn_date ? 
                               new Date(userData.last_earn_date).toLocaleDateString() : 
                               'Never'
@@ -176,7 +227,7 @@ export default function LoyaltyUsersPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-[#810000]">{userData.current_points.toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">points</p>
+                          <p className="text-sm text-gray-900">points</p>
                         </div>
                       </div>
                     </div>
@@ -221,6 +272,20 @@ export default function LoyaltyUsersPage() {
                       <label className="text-sm font-medium text-gray-700">Email</label>
                       <p className="text-gray-900">{selectedUser.email}</p>
                     </div>
+                    
+                    {selectedUser.first_name && selectedUser.last_name && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Name</label>
+                        <p className="text-gray-900">{selectedUser.first_name} {selectedUser.last_name}</p>
+                      </div>
+                    )}
+                    
+                    {selectedUser.loyalty_code && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Loyalty Code</label>
+                        <p className="text-gray-900 font-mono">{selectedUser.loyalty_code}</p>
+                      </div>
+                    )}
                     
                     {selectedUser.phone_e164 && (
                       <div>
@@ -289,6 +354,34 @@ export default function LoyaltyUsersPage() {
                   </div>
                 </div>
 
+                {/* Favorite Dishes */}
+                <div className="tucci-card p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Favorite Dishes</h3>
+                  <div className="space-y-3">
+                    {favoriteDishes.length > 0 ? (
+                      favoriteDishes.slice(0, 5).map((dish, index) => (
+                        <div key={dish.id} className="border-b border-gray-200 pb-3 last:border-b-0">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#810000] text-white font-bold text-sm">
+                                #{index + 1}
+                              </span>
+                              <div>
+                                <p className="font-medium text-gray-900">{dish.dish_name}</p>
+                                <p className="text-sm text-gray-600">
+                                  Ordered {dish.order_count} {dish.order_count === 1 ? 'time' : 'times'} · ${(dish.total_spent_cents / 100).toFixed(2)} total
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">No favorite dishes tracked yet</p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Transaction History */}
                 <div className="tucci-card p-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Transaction History</h3>
@@ -338,7 +431,7 @@ export default function LoyaltyUsersPage() {
                     value={adjustmentPoints}
                     onChange={(e) => setAdjustmentPoints(e.target.value)}
                     placeholder="e.g., 100 or -50"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 placeholder-gray-500"
                   />
                 </div>
                 
@@ -351,7 +444,7 @@ export default function LoyaltyUsersPage() {
                     onChange={(e) => setAdjustmentNote(e.target.value)}
                     placeholder="Explain the reason for this adjustment..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#810000] text-gray-900 placeholder-gray-500"
                   />
                 </div>
               </div>

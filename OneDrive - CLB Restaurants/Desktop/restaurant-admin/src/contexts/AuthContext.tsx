@@ -27,15 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Simple fallback timeout to prevent infinite loading
-    const fallbackTimeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.warn('🚨 [AUTH] Loading timeout - forcing loading to false');
-        setLoading(false);
-      }
-    }, 3000); // 3 second timeout
-
-    // Simplified auth initialization
     const initializeAuth = async () => {
       try {
         console.log('🔍 [AUTH] Initializing auth...');
@@ -52,48 +43,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           return;
         }
-        
+
         if (session?.user) {
           console.log('✅ [AUTH] Found session for:', session.user.email);
           setUser(session.user);
           
-          // Fetch role with retry mechanism
-          let roleFetched = false;
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              console.log(`🔍 [AUTH] Role fetch attempt ${attempt}/3`);
-              const roleResponse = await Promise.race([
-                fetch('/api/auth/user-role'),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Role fetch timeout')), 2000)
-                )
-              ]) as Response;
-              
-              if (roleResponse.ok) {
-                const roleData = await roleResponse.json();
-                console.log('✅ [AUTH] Role fetched:', roleData.role);
-                setUserRole(roleData.role);
-                roleFetched = true;
-                break;
-              } else {
-                console.warn(`⚠️ [AUTH] Role fetch attempt ${attempt} failed:`, roleResponse.status);
-              }
-            } catch (error) {
-              console.warn(`⚠️ [AUTH] Role fetch attempt ${attempt} error:`, error);
-            }
+          // Fetch user role
+          try {
+            const roleResponse = await fetch('/api/auth/user-role', {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' }
+            });
             
-            // Wait before retry (except on last attempt)
-            if (attempt < 3) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
+            if (roleResponse.ok) {
+              const roleData = await roleResponse.json();
+              setUserRole(roleData.role);
+              console.log('✅ [AUTH] Role fetched:', roleData.role);
+            } else {
+              console.warn('⚠️ [AUTH] Role fetch failed, using default');
+              setUserRole('user');
             }
-          }
-          
-          if (!roleFetched) {
-            console.error('❌ [AUTH] All role fetch attempts failed');
-            setUserRole(null);
+          } catch (roleError) {
+            console.warn('⚠️ [AUTH] Role fetch error, using default:', roleError);
+            setUserRole('user');
           }
         } else {
-          console.log('🔍 [AUTH] No session found');
+          console.log('ℹ️ [AUTH] No session found');
           setUser(null);
           setUserRole(null);
         }
@@ -109,94 +84,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 [AUTH] Auth change:', event, session?.user?.email);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
+      console.log('🔄 [AUTH] Auth change:', event, session?.user?.email);
+      
+      // Keep loading true while we fetch the role
+      setLoading(true);
+      
+      if (session?.user) {
+        setUser(session.user);
         
-        if (!isMounted) return;
-        
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setUserRole(null);
-          setLoading(false);
-        } else if (session?.user) {
-          setUser(session.user);
-          // Quick role fetch - but don't fail if it doesn't work
-          try {
-            const roleResponse = await fetch('/api/auth/user-role');
-            if (roleResponse.ok) {
-              const roleData = await roleResponse.json();
-              setUserRole(roleData.role);
-            } else {
-              console.warn('⚠️ [AUTH] Role fetch failed on auth change, but keeping user logged in');
-            }
-          } catch (error) {
-            console.warn('⚠️ [AUTH] Role fetch error on auth change, but keeping user logged in:', error);
+        // Fetch role for new session
+        try {
+          const roleResponse = await fetch('/api/auth/user-role', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            setUserRole(roleData.role);
+            console.log('✅ [AUTH] Role fetched on auth change:', roleData.role);
+          } else {
+            setUserRole('user');
           }
-          setLoading(false);
-        } else {
-          setUser(null);
-          setUserRole(null);
-          setLoading(false);
+        } catch (error) {
+          console.warn('⚠️ [AUTH] Role fetch error on auth change:', error);
+          setUserRole('user');
         }
+        
+        // Set loading false after role is fetched
+        setLoading(false);
+      } else {
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
       }
-    );
+    });
 
-    // Initialize
+    // Initialize auth
     initializeAuth();
 
     return () => {
       isMounted = false;
-      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
-  const fetchUserRole = async (userId: string) => {
-    try {
-      console.log('🔍 [AUTH] Fetching user role for:', userId);
-      
-      // First, verify we have a valid session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        console.error('❌ [AUTH] No valid session for role fetch:', sessionError);
-        setUserRole(null);
-        return;
-      }
-      
-      // Use the API endpoint to fetch role (bypasses RLS issues)
-      const response = await fetch('/api/auth/user-role', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('🔍 [AUTH] Role API response status:', response.status);
-      console.log('🔍 [AUTH] Role API response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [AUTH] Failed to fetch user role:', response.status, response.statusText, errorText);
-        setUserRole(null);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('✅ [AUTH] User role fetched successfully:', data?.role);
-      console.log('🔍 [AUTH] Full role API response:', data);
-      setUserRole(data?.role || null);
-    } catch (error) {
-      console.error('❌ [AUTH] Error fetching user role:', error);
-      setUserRole(null);
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔍 [AUTH] Signing in:', email);
-      setLoading(true);
+      console.log('🔐 [AUTH] Signing in:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -205,88 +144,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('❌ [AUTH] Sign in error:', error);
-        setLoading(false);
-        
-        let errorMessage = 'Login failed';
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email and click the confirmation link before signing in.';
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Too many login attempts. Please wait a moment and try again.';
-        } else if (error.message.includes('User not found')) {
-          errorMessage = 'No account found with this email address.';
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = 'Please enter a valid email address.';
-        } else {
-          errorMessage = error.message;
-        }
-        
-        return { success: false, error: errorMessage };
+        return { success: false, error: error.message };
       }
 
       if (data.user) {
-        console.log('✅ [AUTH] Sign in successful:', data.user.email);
-        setUser(data.user);
-        // The auth state change handler will fetch the role
-        router.replace('/dashboard');
+        console.log('✅ [AUTH] Sign in successful');
         return { success: true };
       }
 
-      setLoading(false);
-      return { success: false, error: 'Login failed' };
+      return { success: false, error: 'Sign in failed' };
     } catch (error) {
-      console.error('❌ [AUTH] Sign in error:', error);
-      setLoading(false);
+      console.error('❌ [AUTH] Sign in exception:', error);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('🔍 [AUTH] Starting sign out');
-      setLoading(true);
+      console.log('🚪 [AUTH] Signing out');
       await supabase.auth.signOut();
       setUser(null);
       setUserRole(null);
-      setLoading(false);
       router.push('/login');
     } catch (error) {
-      console.error('❌ [AUTH] Error signing out:', error);
-      // Even if signOut fails, clear local state and redirect
-      setUser(null);
-      setUserRole(null);
-      setLoading(false);
-      router.push('/login');
+      console.error('❌ [AUTH] Sign out error:', error);
     }
   };
 
   const clearSession = async () => {
     try {
-      console.log('🔍 [AUTH] Clearing session');
-      // Clear any corrupted session data
+      console.log('🧹 [AUTH] Clearing session');
       await supabase.auth.signOut();
       setUser(null);
       setUserRole(null);
-      setLoading(false);
-      // Clear any stored session data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
-        // Clear all Supabase related localStorage
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('sb-')) {
-            localStorage.removeItem(key);
-          }
-        });
-      }
     } catch (error) {
-      console.error('❌ [AUTH] Error clearing session:', error);
-      setUser(null);
-      setUserRole(null);
-      setLoading(false);
+      console.error('❌ [AUTH] Clear session error:', error);
     }
   };
 
+  const isAdmin = userRole === 'admin' || userRole === 'system_admin';
+  const isSuperAdmin = userRole === 'system_admin';
 
   const value = {
     user,
@@ -295,8 +192,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     clearSession,
-    isAdmin: userRole === 'admin' || userRole === 'system_admin',
-    isSuperAdmin: userRole === 'system_admin',
+    isAdmin,
+    isSuperAdmin,
   };
 
   return (
