@@ -20,16 +20,23 @@ export default function LoginPage() {
     setIsSigningIn(true);
 
     try {
+      console.log('[LOGIN] Attempting sign in...');
       const result = await signIn(email, password);
+      console.log('[LOGIN] Sign in result:', result);
       
       if (result.success) {
-        // Redirect to dashboard on successful login
+        console.log('[LOGIN] Sign in successful, redirecting to dashboard...');
+        // Small delay to ensure auth state is set
+        await new Promise(resolve => setTimeout(resolve, 100));
         router.push('/dashboard');
+        console.log('[LOGIN] Router push called');
       } else {
+        console.log('[LOGIN] Sign in failed:', result.error);
         setError(result.error || 'Login failed');
         setIsSigningIn(false);
       }
     } catch (error) {
+      console.error('[LOGIN] Sign in error:', error);
       setError('An unexpected error occurred');
       setIsSigningIn(false);
     }
