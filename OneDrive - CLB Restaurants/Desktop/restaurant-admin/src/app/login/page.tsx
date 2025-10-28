@@ -26,10 +26,11 @@ export default function LoginPage() {
       
       if (result.success) {
         console.log('[LOGIN] Sign in successful, redirecting to dashboard...');
-        // Small delay to ensure auth state is set
-        await new Promise(resolve => setTimeout(resolve, 100));
-        router.push('/dashboard');
-        console.log('[LOGIN] Router push called');
+        // Use window.location.href for a hard navigation to ensure cookies are set
+        // This bypasses any client-side routing issues and lets middleware handle the redirect
+        await new Promise(resolve => setTimeout(resolve, 200));
+        window.location.href = '/dashboard';
+        console.log('[LOGIN] Window location redirect called');
       } else {
         console.log('[LOGIN] Sign in failed:', result.error);
         setError(result.error || 'Login failed');
