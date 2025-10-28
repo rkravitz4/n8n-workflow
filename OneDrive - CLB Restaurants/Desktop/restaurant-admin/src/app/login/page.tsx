@@ -22,12 +22,15 @@ export default function LoginPage() {
     try {
       const result = await signIn(email, password);
       
-      if (!result.success) {
+      if (result.success) {
+        // Redirect to dashboard on successful login
+        router.push('/dashboard');
+      } else {
         setError(result.error || 'Login failed');
+        setIsSigningIn(false);
       }
     } catch (error) {
       setError('An unexpected error occurred');
-    } finally {
       setIsSigningIn(false);
     }
   };
